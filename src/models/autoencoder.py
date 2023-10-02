@@ -11,14 +11,16 @@ from torchmetrics import MaxMetric, MeanMetric
 class AutoEncoder(LightningModule):
     def __init__(
         self,
-        net: torch.nn.Module,
+        encoder: torch.nn.Module,
+        decoder: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler,
         compile: bool,
     ) -> None:
         super().__init__()
         self.save_hyperparameters(logger=False)
-        self.net = net
+        self.encoder = encoder
+        self.decoder = decoder
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.compile = compile
@@ -27,7 +29,9 @@ class AutoEncoder(LightningModule):
         self.criterion = chamfer_distance
 
     def forward(self, x):
-        return self.net(x)
+        x = self.encoder(x)
+        x = self.decoder(x)
+        return x
 
     def model_step(self, batch, batch_idx):
         x, pos, y = batch
