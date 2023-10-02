@@ -92,9 +92,7 @@ class MNISTLitModule(LightningModule):
         self.val_acc.reset()
         self.val_acc_best.reset()
 
-    def model_step(
-        self, batch: Tuple[torch.Tensor, torch.Tensor]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def model_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Perform a single model step on a batch of data.
 
         :param batch: A batch of data (a tuple) containing the input tensor of images and target labels.
@@ -110,13 +108,10 @@ class MNISTLitModule(LightningModule):
         preds = torch.argmax(logits, dim=1)
         return loss, preds, y
 
-    def training_step(
-        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
-    ) -> torch.Tensor:
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
         """Perform a single training step on a batch of data from the training set.
 
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target
-            labels.
+        :param batch: A batch of data (a tuple) containing the input tensor of images and target labels.
         :param batch_idx: The index of the current batch.
         :return: A tensor of losses between model predictions and targets.
         """
@@ -138,8 +133,7 @@ class MNISTLitModule(LightningModule):
     def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Perform a single validation step on a batch of data from the validation set.
 
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target
-            labels.
+        :param batch: A batch of data (a tuple) containing the input tensor of images and target labels.
         :param batch_idx: The index of the current batch.
         """
         loss, preds, targets = self.model_step(batch)
@@ -161,8 +155,7 @@ class MNISTLitModule(LightningModule):
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Perform a single test step on a batch of data from the test set.
 
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target
-            labels.
+        :param batch: A batch of data (a tuple) containing the input tensor of images and target labels.
         :param batch_idx: The index of the current batch.
         """
         loss, preds, targets = self.model_step(batch)
@@ -178,11 +171,10 @@ class MNISTLitModule(LightningModule):
         pass
 
     def setup(self, stage: str) -> None:
-        """Lightning hook that is called at the beginning of fit (train + validate), validate,
-        test, or predict.
+        """Lightning hook that is called at the beginning of fit (train + validate), validate, test, or predict.
 
-        This is a good hook when you need to build models dynamically or adjust something about
-        them. This hook is called on every process when using DDP.
+        This is a good hook when you need to build models dynamically or adjust something about them. This hook is
+        called on every process when using DDP.
 
         :param stage: Either `"fit"`, `"validate"`, `"test"`, or `"predict"`.
         """
@@ -190,8 +182,8 @@ class MNISTLitModule(LightningModule):
             self.net = torch.compile(self.net)
 
     def configure_optimizers(self) -> Dict[str, Any]:
-        """Choose what optimizers and learning-rate schedulers to use in your optimization.
-        Normally you'd need one. But in the case of GANs or similar you might have multiple.
+        """Choose what optimizers and learning-rate schedulers to use in your optimization. Normally you'd need one. But
+        in the case of GANs or similar you might have multiple.
 
         Examples:
             https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#configure-optimizers

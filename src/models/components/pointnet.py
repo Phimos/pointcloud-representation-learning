@@ -1,9 +1,10 @@
+import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.nn.parallel
 import torch.utils.data
-import numpy as np
-import torch.nn.functional as F
+
 
 def size_splits(tensor, split_sizes, dim=0):
     """Splits the tensor according to chunks of split_sizes.
@@ -22,13 +23,12 @@ def size_splits(tensor, split_sizes, dim=0):
 
     splits = torch.cumsum(torch.Tensor([0] + split_sizes), dim=0)[:-1]
 
-    return tuple(tensor.narrow(int(dim), int(start), int(length))
-                 for start, length in zip(splits, split_sizes))
+    return tuple(tensor.narrow(int(dim), int(start), int(length)) for start, length in zip(splits, split_sizes))
 
 
 class STN3d(nn.Module):
     def __init__(self, channel):
-        super(STN3d, self).__init__()
+        super().__init__()
         self.conv1 = torch.nn.Conv1d(channel, 64, 1)
         self.conv2 = torch.nn.Conv1d(64, 128, 1)
         self.conv3 = torch.nn.Conv1d(128, 1024, 1)
@@ -55,18 +55,21 @@ class STN3d(nn.Module):
         x = F.relu(self.bn5(self.fc2(x)))
         x = self.fc3(x)
 
-        #iden = Variable(torch.from_numpy(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(np.float32))).view(1, 9).repeat(
+        # iden = Variable(torch.from_numpy(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(np.float32))).view(1, 9).repeat(
         #    batchsize, 1)
-        iden = torch.from_numpy(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(np.float32)).view(1, 9).repeat(batchsize, 1)
+        iden = (
+            torch.from_numpy(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(np.float32)).view(1, 9).repeat(batchsize, 1)
+        )
         if x.is_cuda:
             iden = iden.to(x.device)
         x = x + iden
         x = x.view(-1, 3, 3)
         return x
 
+
 class STNkd(nn.Module):
     def __init__(self, k=64):
-        super(STNkd, self).__init__()
+        super().__init__()
         self.conv1 = torch.nn.Conv1d(k, 64, 1)
         self.conv2 = torch.nn.Conv1d(64, 128, 1)
         self.conv3 = torch.nn.Conv1d(128, 1024, 1)
@@ -95,16 +98,19 @@ class STNkd(nn.Module):
         x = F.relu(self.bn5(self.fc2(x)))
         x = self.fc3(x)
 
-        iden = torch.from_numpy(np.eye(self.k).flatten().astype(np.float32)).view(1, self.k * self.k).repeat(batchsize, 1)
+        iden = (
+            torch.from_numpy(np.eye(self.k).flatten().astype(np.float32)).view(1, self.k * self.k).repeat(batchsize, 1)
+        )
         if x.is_cuda:
             iden = iden.cuda()
         x = x + iden
         x = x.view(-1, self.k, self.k)
         return x
 
+
 class PointNetEncoder(nn.Module):
     def __init__(self, global_feat=True, feature_transform=False, channel=3, use_stn=True):
-        super(PointNetEncoder, self).__init__()
+        super().__init__()
         self.stn = STN3d(channel) if use_stn else None
         self.conv1 = torch.nn.Conv1d(channel, 64, 1)
         self.conv2 = torch.nn.Conv1d(64, 128, 1)
@@ -148,10 +154,11 @@ class PointNetEncoder(nn.Module):
             x = x.view(-1, 1024, 1).repeat(1, 1, N)
             return torch.cat([x, pointfeat], 1), trans, trans_feat
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     points = torch.randn(2, 3, 778)
     print(points.size())
     pointnet = PointNetEncoder()
-    print('params {}M'.format(sum(p.numel() for p in pointnet.parameters()) / 1000000.0))
+    print(f"params {sum(p.numel() for p in pointnet.parameters()) / 1000000.0}M")
     glb_feature, trans, trans_feature = pointnet(points)
     print(glb_feature.size())

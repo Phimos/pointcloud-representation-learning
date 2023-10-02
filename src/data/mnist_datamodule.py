@@ -75,9 +75,7 @@ class MNISTDataModule(LightningDataModule):
         self.save_hyperparameters(logger=False)
 
         # data transformations
-        self.transforms = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
+        self.transforms = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
@@ -94,10 +92,9 @@ class MNISTDataModule(LightningDataModule):
         return 10
 
     def prepare_data(self) -> None:
-        """Download data if needed. Lightning ensures that `self.prepare_data()` is called only
-        within a single process on CPU, so you can safely add your downloading logic within. In
-        case of multi-node training, the execution of this hook depends upon
-        `self.prepare_data_per_node()`.
+        """Download data if needed. Lightning ensures that `self.prepare_data()` is called only within a single process
+        on CPU, so you can safely add your downloading logic within. In case of multi-node training, the execution of
+        this hook depends upon `self.prepare_data_per_node()`.
 
         Do not use it to assign state (self.x = y).
         """
@@ -173,8 +170,8 @@ class MNISTDataModule(LightningDataModule):
         )
 
     def teardown(self, stage: Optional[str] = None) -> None:
-        """Lightning hook for cleaning up after `trainer.fit()`, `trainer.validate()`,
-        `trainer.test()`, and `trainer.predict()`.
+        """Lightning hook for cleaning up after `trainer.fit()`, `trainer.validate()`, `trainer.test()`, and
+        `trainer.predict()`.
 
         :param stage: The stage being torn down. Either `"fit"`, `"validate"`, `"test"`, or `"predict"`.
             Defaults to ``None``.
@@ -189,8 +186,7 @@ class MNISTDataModule(LightningDataModule):
         return {}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Called when loading a checkpoint. Implement to reload datamodule state given datamodule
-        `state_dict()`.
+        """Called when loading a checkpoint. Implement to reload datamodule state given datamodule `state_dict()`.
 
         :param state_dict: The datamodule state returned by `self.state_dict()`.
         """

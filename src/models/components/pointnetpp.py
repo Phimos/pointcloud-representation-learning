@@ -1,14 +1,9 @@
 import torch
-import torch.nn.functional as F
-
-import torch_geometric.transforms as T
-from torch_geometric.datasets import ModelNet
-from torch_geometric.loader import DataLoader
+import torch.nn as nn
 from torch_geometric.nn import MLP, PointNetConv, fps, global_max_pool, radius
 
 
-
-class SAModule(torch.nn.Module):
+class SAModule(nn.Module):
     def __init__(self, ratio, r, nn):
         super().__init__()
         self.ratio = ratio
@@ -17,8 +12,7 @@ class SAModule(torch.nn.Module):
 
     def forward(self, x, pos, batch):
         idx = fps(pos, batch, ratio=self.ratio)
-        row, col = radius(pos, pos[idx], self.r, batch, batch[idx],
-                          max_num_neighbors=64)
+        row, col = radius(pos, pos[idx], self.r, batch, batch[idx], max_num_neighbors=64)
         edge_index = torch.stack([col, row], dim=0)
         x_dst = None if x is None else x[idx]
         x = self.conv((x, x_dst), (pos, pos[idx]), edge_index)
@@ -26,7 +20,7 @@ class SAModule(torch.nn.Module):
         return x, pos, batch
 
 
-class GlobalSAModule(torch.nn.Module):
+class GlobalSAModule(nn.Module):
     def __init__(self, nn):
         super().__init__()
         self.nn = nn
@@ -39,7 +33,7 @@ class GlobalSAModule(torch.nn.Module):
         return x, pos, batch
 
 
-class Net(torch.nn.Module):
+class Net(nn.Module):
     def __init__(self):
         super().__init__()
         # Input channels account for both `pos` and node features.
@@ -49,11 +43,26 @@ class Net(torch.nn.Module):
 
         self.mlp = MLP([1024, 512, 256, 10], dropout=0.5, norm=None)
 
-    def forward(self, data):
-        sa0_out = (data.x, data.pos, data.batch)
+    def encode(self, data: torch.Tensor) -> torch.Tensor:
+        assert data.ndim == 3 and data.shape[1] == 3
+        batch_size, _, num_points = data.shape
+        pos = torch.einsum("b d n -> b n d", data).reshape(batch_size * num_points, 3)
+        batch = torch.arange(batch_size, device=data.device).repeat_interleave(num_points)
+        sa0_out = (None, pos, batch)
         sa1_out = self.sa1_module(*sa0_out)
         sa2_out = self.sa2_module(*sa1_out)
         sa3_out = self.sa3_module(*sa2_out)
-        x, pos, batch = sa3_out
+        x, _, _ = sa3_out
+        return x
 
+    def forward(self, data: torch.Tensor) -> torch.Tensor:
+        """Forward pass of the model.
+
+        Args:
+            data (torch.Tensor): Input data point cloud of shape (B, 3, N).
+
+        Returns:
+            torch.Tensor: Logits of shape (B, num_classes).
+        """
+        x = self.encode(data)
         return self.mlp(x).log_softmax(dim=-1)

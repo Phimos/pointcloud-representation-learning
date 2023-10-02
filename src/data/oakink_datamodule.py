@@ -1,14 +1,16 @@
-from typing import Any, Dict, Optional, Tuple
-import torch
-from lightning import LightningDataModule
-from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
 import glob
-import pandas as pd 
 import json
 from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
+
+import pandas as pd
+import torch
+from lightning import LightningDataModule
 from pytorch3d.io import load_objs_as_meshes
 from pytorch3d.ops import sample_points_from_meshes
 from pytorch3d.transforms import RotateAxisAngle
+from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
+
 
 class OakInkPointDataset(Dataset):
     def __init__(self, num_points: int = 1024):
@@ -51,24 +53,23 @@ class OakInkPointDataset(Dataset):
             "pointcloud": self.pointclouds[index],
             "category": self.categories[index],
         }
-        
 
 
 class OakInkDataModule(LightningDataModule):
     def __init__(self, data_dir: str = "data/"):
         pass
-    
+
     def prepare_data(self) -> None:
         return super().prepare_data()
-    
+
     def setup(self, stage: str) -> None:
         return super().setup(stage)
-    
+
     def train_dataloader(self) -> DataLoader[Any]:
         return super().train_dataloader()
-    
+
     def val_dataloader(self) -> DataLoader[Any]:
         return super().val_dataloader()
-    
+
     def test_dataloader(self) -> DataLoader[Any]:
         return super().test_dataloader()
