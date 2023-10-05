@@ -1,11 +1,8 @@
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import torch
-from components.decoder import Decoder
-from components.pointnetpp import Net
 from lightning import LightningModule
 from pytorch3d.loss import chamfer_distance
-from torchmetrics import MaxMetric, MeanMetric
 
 
 class AutoEncoder(LightningModule):
@@ -24,32 +21,37 @@ class AutoEncoder(LightningModule):
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.compile = compile
-        self.decoder = Decoder(1024, 2048)
 
         self.criterion = chamfer_distance
 
     def forward(self, x):
-        x = self.encoder(x)
+        x = self.encoder.encode(x)
         x = self.decoder(x)
         return x
 
     def model_step(self, batch, batch_idx):
-        x, pos, y = batch
-        x_hat = self.net(x)
-        loss = chamfer_distance(x_hat, x)
-        self.log("val_loss", loss)
-        return loss
+        x = batch["pointcloud"]
+        x_hat = self.forward(x)
+        loss, loss_normals = self.criterion(x, x_hat)
+        return x_hat, loss
 
     def training_step(self, batch, batch_idx):
-        x, pos, y = batch
-        x_hat = self.net(x)
-        loss = chamfer_distance(x_hat, x)
-        self.log("train_loss", loss)
+        _, loss = self.model_step(batch, batch_idx)
+        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         return loss
+
+    def validation_step(self, batch, batch_idx):
+        _, loss = self.model_step(batch, batch_idx)
+        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+
+    def test_step(self, batch, batch_idx):
+        _, loss = self.model_step(batch, batch_idx)
+        self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
     def setup(self, stage: str) -> None:
         if self.hparams.compile and stage == "fit":
-            self.net = torch.compile(self.net)
+            self.encoder = torch.compile(self.encoder)
+            self.decoder = torch.compile(self.decoder)
 
     def configure_optimizers(self) -> Dict[str, Any]:
         """Choose what optimizers and learning-rate schedulers to use in your optimization. Normally you'd need one. But
