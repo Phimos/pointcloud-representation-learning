@@ -1,10 +1,15 @@
 from typing import Any, Dict, List, Tuple
 
 import hydra
+import numpy as np
+import pandas as pd
 import rootutils
 from lightning import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
+from pytorch3d.io import save_ply
+from pytorch3d.structures import Pointclouds
+from torch.utils.data import DataLoader
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 # ------------------------------------------------------------------------------------ #
@@ -76,6 +81,26 @@ def evaluate(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     # for predictions use trainer.predict(...)
     # predictions = trainer.predict(model=model, dataloaders=dataloaders, ckpt_path=cfg.ckpt_path)
+
+    # test_dataloader = datamodule.test_dataloader()
+    # for batch in test_dataloader:
+    #     predictions = model.forward(batch["pointcloud"])
+    #     for i in range(min(5, predictions.shape[0])):
+    #         save_ply(f"prediction_{i:03d}.ply", predictions[i].transpose(0, 1))
+    #         save_ply(f"target_{i:03d}.ply", batch["pointcloud"][i].transpose(0, 1))
+
+    dataloader = DataLoader(datamodule.dataset, batch_size=128, shuffle=False)
+    values = []
+    for batch in dataloader:
+        embeddings = model.encoder.encode(batch["pointcloud"])
+        embeddings = embeddings.detach().cpu().numpy()
+        values.append(embeddings)
+    values = np.concatenate(values, axis=0)
+    codes = datamodule.dataset.codes
+    frame = pd.DataFrame(
+        values, columns=[f"dim{i}" for i in range(values.shape[1])], index=pd.Series(codes, name="code")
+    )
+    frame.to_csv("embeddings.csv")
 
     metric_dict = trainer.callback_metrics
 

@@ -8,7 +8,7 @@ import torch
 from lightning import LightningDataModule
 from pytorch3d.io import load_objs_as_meshes
 from pytorch3d.ops import sample_points_from_meshes
-from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
+from torch.utils.data import DataLoader, Dataset, random_split
 
 
 class OakInkPointDataset(Dataset):
@@ -41,6 +41,7 @@ class OakInkPointDataset(Dataset):
         meshes = load_objs_as_meshes(filepaths, load_textures=False, device="cpu")
         self.pointclouds = sample_points_from_meshes(meshes, num_samples=num_points)
         self.pointclouds = torch.einsum("b n d -> b d n", self.pointclouds)
+        self.pointclouds *= 100.0  # unit: m -> cm
         self.categories = torch.tensor(categories, dtype=torch.long)
         self.codes = codes
 
@@ -74,16 +75,24 @@ class OakInkDataModule(LightningDataModule):
         self.num_workers = num_workers
         self.pin_memory = pin_memory
 
+        self.train_dataset: Optional[Dataset] = None
+        self.val_dataset: Optional[Dataset] = None
+        self.test_dataset: Optional[Dataset] = None
+
     def prepare_data(self) -> None:
         return super().prepare_data()
 
     def setup(self, stage: str) -> None:
-        dataset = OakInkPointDataset(num_points=self.num_points)
-        num_samples = len(dataset)
-        num_train = int(num_samples * 0.8)
-        num_val = int(num_samples * 0.1)
-        num_test = num_samples - num_train - num_val
-        self.train_dataset, self.val_dataset, self.test_dataset = random_split(dataset, [num_train, num_val, num_test])
+        if not self.train_dataset and not self.val_dataset and not self.test_dataset:
+            dataset = OakInkPointDataset(num_points=self.num_points)
+            num_samples = len(dataset)
+            num_train = int(num_samples * 0.8)
+            num_val = int(num_samples * 0.1)
+            num_test = num_samples - num_train - num_val
+            self.dataset = dataset
+            self.train_dataset, self.val_dataset, self.test_dataset = random_split(
+                dataset, [num_train, num_val, num_test], generator=torch.Generator().manual_seed(42)
+            )
 
     def train_dataloader(self) -> DataLoader[Any]:
         return DataLoader(

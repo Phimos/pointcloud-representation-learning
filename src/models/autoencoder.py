@@ -2,7 +2,13 @@ from typing import Any, Dict, Optional, Tuple
 
 import torch
 from lightning import LightningModule
-from pytorch3d.loss import chamfer_distance
+from pytorch3d.loss import chamfer_distance as _chamfer_distance
+
+
+def chamfer_distance(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    x = x.transpose(1, 2)
+    y = y.transpose(1, 2)
+    return _chamfer_distance(x, y)[0]
 
 
 class AutoEncoder(LightningModule):
@@ -15,7 +21,7 @@ class AutoEncoder(LightningModule):
         compile: bool,
     ) -> None:
         super().__init__()
-        self.save_hyperparameters(logger=False)
+        self.save_hyperparameters(logger=False, ignore=["encoder", "decoder"])
         self.encoder = encoder
         self.decoder = decoder
         self.optimizer = optimizer
@@ -32,7 +38,7 @@ class AutoEncoder(LightningModule):
     def model_step(self, batch, batch_idx):
         x = batch["pointcloud"]
         x_hat = self.forward(x)
-        loss, loss_normals = self.criterion(x, x_hat)
+        loss = self.criterion(x, x_hat)
         return x_hat, loss
 
     def training_step(self, batch, batch_idx):
