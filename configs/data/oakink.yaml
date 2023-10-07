@@ -1,4 +1,5 @@
 _target_: src.data.oakink_datamodule.OakInkDataModule
+grasp: True
 batch_size: 128 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
 num_workers: 8
 pin_memory: False
