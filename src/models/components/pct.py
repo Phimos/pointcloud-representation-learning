@@ -14,18 +14,14 @@ from torch_geometric.nn import (
     knn,
     knn_graph,
 )
-from torch_geometric.typing import WITH_TORCH_CLUSTER
 from torch_geometric.utils import scatter
 
-if not WITH_TORCH_CLUSTER:
-    quit("This example requires 'torch-cluster'")
-
-path = osp.join(osp.dirname(osp.realpath(__file__)), "..", "data/ModelNet10")
-pre_transform, transform = T.NormalizeScale(), T.SamplePoints(1024)
-train_dataset = ModelNet(path, "10", True, transform, pre_transform)
-test_dataset = ModelNet(path, "10", False, transform, pre_transform)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+# path = osp.join(osp.dirname(osp.realpath(__file__)), "..", "data/ModelNet10")
+# pre_transform, transform = T.NormalizeScale(), T.SamplePoints(1024)
+# train_dataset = ModelNet(path, "10", True, transform, pre_transform)
+# test_dataset = ModelNet(path, "10", False, transform, pre_transform)
+# train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+# test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 
 class TransformerBlock(torch.nn.Module):
@@ -111,10 +107,12 @@ class Net(torch.nn.Module):
         # class score computation
         self.mlp_output = MLP([dim_model[-1], 64, out_channels], norm=None)
 
-    def forward(self, x, pos, batch=None):
-        # add dummy features in case there is none
-        if x is None:
-            x = torch.ones((pos.shape[0], 1), device=pos.get_device())
+    def encode(self, data: torch.Tensor) -> torch.Tensor:
+        assert data.ndim == 3 and data.shape[1] == 3
+        batch_size, _, num_points = data.shape
+        pos = torch.einsum("b d n -> b n d", data).reshape(batch_size * num_points, 3)
+        batch = torch.arange(batch_size, device=data.device).repeat_interleave(num_points)
+        x = torch.ones((batch_size * num_points, 1), device=data.device)
 
         # first block
         x = self.mlp_input(x)
@@ -130,6 +128,10 @@ class Net(torch.nn.Module):
 
         # GlobalAveragePooling
         x = global_mean_pool(x, batch)
+        return x
+
+    def forward(self, data: torch.Tensor) -> torch.Tensor:
+        x = self.encode(data)
 
         # Class score
         out = self.mlp_output(x)
