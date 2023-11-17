@@ -16,4 +16,5 @@ tags: ["dev"]
 
 # passing checkpoint path is necessary for evaluation
 # ckpt_path: /root/autodl-tmp/project/pointcloud-representation-learning/logs/train/runs/2023-10-05_14-36-06/checkpoints/last.ckpt
-ckpt_path: /root/autodl-tmp/project/pointcloud-representation-learning/logs/train/runs/2023-10-07_13-52-41/checkpoints/last.ckpt
+# ckpt_path: /root/autodl-tmp/project/pointcloud-representation-learning/logs/train/runs/2023-10-07_20-35-30/checkpoints/last.ckpt
+ckpt_path: /root/autodl-tmp/project/pointcloud-representation-learning/logs/train/runs/2023-11-17_09-19-39/checkpoints/epoch_092.ckpt

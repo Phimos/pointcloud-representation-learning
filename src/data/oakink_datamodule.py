@@ -103,10 +103,15 @@ def load_objs_as_meshes(
 
 
 class OakInkPointDataset(Dataset):
-    def __init__(self, root_dir: str = "/root/autodl-tmp/project/func-mani", num_points: int = 1024):
+    def __init__(
+        self,
+        root_dir: str = "/root/autodl-tmp/project/func-mani",
+        grasping_dir: str = "data/oakink_shadow_dataset_valid_new",
+        num_points: int = 1024,
+    ):
         super().__init__()
 
-        grasp_config_dir = Path(root_dir) / "data/oakink_shadow_dataset_valid_new"
+        grasp_config_dir = Path(root_dir) / grasping_dir
 
         statistics = []
         for filepath in glob.glob(str(grasp_config_dir) + "/*/*.json", recursive=True):
@@ -151,10 +156,15 @@ class OakInkPointDataset(Dataset):
 
 
 class OakInkGraspPointDataset(Dataset):
-    def __init__(self, root_dir: str = "/root/autodl-tmp/project/func-mani", num_points: int = 1024):
+    def __init__(
+        self,
+        root_dir: str = "/root/autodl-tmp/project/func-mani",
+        grasping_dir: str = "data/oakink_shadow_func_grasp_meshes",
+        num_points: int = 1024,
+    ):
         super().__init__()
 
-        grasp_mesh_dir = Path(root_dir) / "data/oakink_shadow_func_grasp_meshes"
+        grasp_mesh_dir = Path(root_dir) / grasping_dir
         filepaths = list(grasp_mesh_dir.glob("*.pt"))
 
         pointclouds = []
@@ -185,7 +195,8 @@ class OakInkGraspPointDataset(Dataset):
 class OakInkDataModule(LightningDataModule):
     def __init__(
         self,
-        data_dir: str = "data/",
+        root_dir: str = "/root/autodl-tmp/project/func-mani",
+        grasping_dir: str = "data/oakink_shadow_dataset_valid_new",
         grasp: bool = False,
         num_points: int = 1024,
         batch_size: int = 32,
@@ -193,7 +204,8 @@ class OakInkDataModule(LightningDataModule):
         pin_memory: bool = False,
     ):
         super().__init__()
-        self.data_dir = data_dir
+        self.root_dir = root_dir
+        self.grasping_dir = grasping_dir
         self.grasp = grasp
         self.num_points = num_points
         self.batch_size = batch_size
@@ -210,9 +222,13 @@ class OakInkDataModule(LightningDataModule):
     def setup(self, stage: str) -> None:
         if not self.train_dataset and not self.val_dataset and not self.test_dataset:
             if self.grasp:
-                dataset = OakInkGraspPointDataset(num_points=self.num_points)
+                dataset = OakInkGraspPointDataset(
+                    root_dir=self.root_dir, grasping_dir=self.grasping_dir, num_points=self.num_points
+                )
             else:
-                dataset = OakInkPointDataset(num_points=self.num_points)
+                dataset = OakInkPointDataset(
+                    root_dir=self.root_dir, grasping_dir=self.grasping_dir, num_points=self.num_points
+                )
             num_samples = len(dataset)
             num_train = int(num_samples * 0.8)
             num_val = int(num_samples * 0.1)

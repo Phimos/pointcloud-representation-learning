@@ -27,9 +27,9 @@ if __name__ == "__main__":
     kmeans = KMeans(n_clusters=20, random_state=0).fit(embeddings.filter(like="dim"))
     embeddings["cluster"] = kmeans.labels_
 
-    statistics = pd.read_csv("data/statistics.csv").set_index("code", drop=True)
-    statistics = pd.merge(embeddings, statistics, left_on="object_code", right_index=True, how="left")
+    # statistics = pd.read_csv("data/statistics.csv").set_index("code", drop=True)
+    # statistics = pd.merge(embeddings, statistics, left_on="object_code", right_index=True, how="left")
 
-    embedding_columns = statistics.filter(like="dim").columns
-    statistics = statistics.drop(columns=embedding_columns)
-    statistics.to_csv("cluster_20_info.csv")
+    embedding_columns = embeddings.filter(like="dim").columns
+    embeddings = embeddings.drop(columns=embedding_columns)
+    embeddings.to_csv("cluster_20_info.csv")

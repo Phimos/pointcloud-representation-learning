@@ -1,4 +1,5 @@
 _target_: src.data.oakink_datamodule.OakInkDataModule
+grasping_dir: data/oakink_shadow_func_grasping_meshes_force_noise_accept_1
 grasp: True
 batch_size: 128 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
 num_workers: 8
